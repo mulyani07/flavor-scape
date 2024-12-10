@@ -1,54 +1,61 @@
-const loadModel = require('../services/loadModel');
-const runInference = require('../services/inferenceService');
-const storeData = require('../services/storeData');
-const tf = require('@tensorflow/tfjs-node');
-const fs = require('fs');
+/** @format */
 
-let model;
+const predictClassification = require("../services/inferenceService");
+const { storeData, getData } = require("../services/storeData");
+const crypto = require("crypto");
 
-const handler = {
-    async loadModelHandler(request, h) {
-        try {
-            model = await loadModel('https://storage.googleapis.com/modelfv/models/model.json');
-            return h.response({ message: 'Model loaded successfully' }).code(200);
-        } catch (error) {
-            return h.response({ error: error.message }).code(500);
-        }
-    },
+async function postPredictHandler(request, h) {
+    const { image } = request.payload;
+    const { model } = request.server.app;
 
-    async predictHandler(request, h) {
-        try {
-            if (!model) {
-                throw new Error('Model is not loaded. Load the model first.');
-            }
+    // Lakukan prediksi dengan model
+    const { confidenceScore, label, suggestion } = await predictClassification(model, image);
 
-            const { file } = request.payload.image;
-            const imageBuffer = await file.toBuffer();
-            const tensor = tf.node.decodeImage(imageBuffer).resizeNearestNeighbor([224, 224]).toFloat().expandDims();
+    const id = crypto.randomUUID();
+    const createdAt = new Date().toISOString();
 
-            const prediction = await runInference(model, tensor);
-            const detectedVegetable = prediction[0];
-
-            const recipes = getRecipeRecommendations(detectedVegetable);
-            await storeData('predictions', { detectedVegetable, recipes });
-
-            return h.response({ detectedVegetable, recipes }).code(200);
-        } catch (error) {
-            return h.response({ error: error.message }).code(400);
-        }
-    },
-};
-
-const getRecipeRecommendations = (vegetable) => {
-    const recipeDatabase = {
-        carrot: [
-            { title: 'Papaya Soup', ingredients: ['papaya', 'onion', 'garlic'], instructions: 'Boil everything and blend.' },
-            { title: 'Papaya Salad', ingredients: ['papaya', 'lettuce', 'olive oil'], instructions: 'Mix everything.' },
-            { title: 'Papaya Cake', ingredients: ['papaya', 'flour', 'sugar'], instructions: 'Bake it.' },
-        ],
+    // Data yang akan disimpan ke Firestore
+    const data = {
+        id,
+        ingredient: label,
+        recipes: suggestion, // Suggestion berisi array resep
+        confidenceScore,
+        createdAt,
     };
 
-    return recipeDatabase[vegetable] || [];
-};
+    // Simpan hasil prediksi ke database
+    await storeData(id, data);
 
-module.exports = handler;
+    const response = h.response({
+        status: "success",
+        message: confidenceScore > 0 ? "Ingredient successfully identified" : "Please use a clearer image.",
+        data,
+    });
+    response.code(201);
+    return response;
+}
+
+async function getPredictHandler(request, h) {
+    const { id } = request.params;
+
+    // Ambil data prediksi berdasarkan ID
+    const data = await getData(id);
+
+    if (!data) {
+        const response = h.response({
+            status: "fail",
+            message: "Prediction not found",
+        });
+        response.code(404);
+        return response;
+    }
+
+    const response = h.response({
+        status: "success",
+        data,
+    });
+    response.code(200);
+    return response;
+}
+
+module.exports = { postPredictHandler, getPredictHandler };
