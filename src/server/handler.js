@@ -9,7 +9,7 @@ let model;
 const handler = {
     async loadModelHandler(request, h) {
         try {
-            model = await loadModel('model/model.h5');
+            model = await loadModel('https://storage.googleapis.com/modelfv/models/model.json');
             return h.response({ message: 'Model loaded successfully' }).code(200);
         } catch (error) {
             return h.response({ error: error.message }).code(500);
