@@ -2,7 +2,7 @@ const tf = require('@tensorflow/tfjs-node');
 
 const loadModel = async (modelPath) => {
     try {
-        const model = await tf.loadLayersModel(`file://${modelPath}`);
+        const model = await tf.loadLayersModel(`https://storage.googleapis.com/modelfv/models/model.json`);
         console.log('Model loaded successfully');
         return model;
     } catch (error) {
