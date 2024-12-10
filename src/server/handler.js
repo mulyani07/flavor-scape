@@ -42,9 +42,9 @@ const handler = {
 const getRecipeRecommendations = (vegetable) => {
     const recipeDatabase = {
         carrot: [
-            { title: 'Carrot Soup', ingredients: ['carrot', 'onion', 'garlic'], instructions: 'Boil everything and blend.' },
-            { title: 'Carrot Salad', ingredients: ['carrot', 'lettuce', 'olive oil'], instructions: 'Mix everything.' },
-            { title: 'Carrot Cake', ingredients: ['carrot', 'flour', 'sugar'], instructions: 'Bake it.' },
+            { title: 'Papaya Soup', ingredients: ['papaya', 'onion', 'garlic'], instructions: 'Boil everything and blend.' },
+            { title: 'Papaya Salad', ingredients: ['papaya', 'lettuce', 'olive oil'], instructions: 'Mix everything.' },
+            { title: 'Papaya Cake', ingredients: ['papaya', 'flour', 'sugar'], instructions: 'Bake it.' },
         ],
     };
 
