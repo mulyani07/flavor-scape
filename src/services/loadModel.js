@@ -1,7 +1,7 @@
 const tf = require("@tensorflow/tfjs-node");
 
 async function loadModel() {
-    const modelPath = process.env.APP_ENV === "local" ? process.env.LOCAL_MODEL_URL : process.>
+    const modelPath = process.env.APP_ENV === "local" ? process.env.LOCAL_MODEL_URL  : process.env.PRODUCTION_MODEL_URL;
 
     if (!modelPath) {
         throw new Error("Model URL is not defined in environment variables.");
