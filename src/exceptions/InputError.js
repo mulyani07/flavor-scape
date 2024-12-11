@@ -1,10 +1,12 @@
-const ClientError = require('./ClientError');
+/** @format */
+const ClientError = require("../exceptions/ClientError");
 
 class InputError extends ClientError {
-    constructor(message) {
-        super(message, 422); // 422 Unprocessable Entity
-        this.name = 'InputError';
-    }
+        constructor(message, statusCode = 400) {
+                super(message);
+        this.name = "InputError";
+        this.statusCode = statusCode;
+        }
 }
 
 module.exports = InputError;
