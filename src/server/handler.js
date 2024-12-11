@@ -5,57 +5,79 @@ const { storeData, getData } = require("../services/storeData");
 const crypto = require("crypto");
 
 async function postPredictHandler(request, h) {
-    const { image } = request.payload;
-    const { model } = request.server.app;
+    try {
+        const { image } = request.payload;
+        const { model } = request.server.app;
 
-    // Lakukan prediksi dengan model
-    const { confidenceScore, label, suggestion } = await predictClassification(model, image);
+        if (!image) {
+            return h.response({
+                status: "fail",
+                message: "No image found in the payload.",
+            }).code(400);
+        }
 
-    const id = crypto.randomUUID();
-    const createdAt = new Date().toISOString();
+        if (!model) {
+            return h.response({
+                status: "fail",
+                message: "Model is not loaded.",
+            }).code(500);
+        }
 
-    // Data yang akan disimpan ke Firestore
-    const data = {
-        id,
-        ingredient: label,
-        recipes: suggestion, // Suggestion berisi array resep
-        confidenceScore,
-        createdAt,
-    };
+        const { confidenceScore, label, suggestion } = await predictClassification(model, image);
 
-    // Simpan hasil prediksi ke database
-    await storeData(id, data);
+        const id = crypto.randomUUID();
+        const createdAt = new Date().toISOString();
 
-    const response = h.response({
-        status: "success",
-        message: confidenceScore > 0 ? "Ingredient successfully identified" : "Please use a clearer image.",
-        data,
-    });
-    response.code(201);
-    return response;
+        const data = {
+            id,
+            ingredient: label,
+            recipes: suggestion,
+            confidenceScore,
+            createdAt,
+        };
+
+        await storeData(id, data);
+
+        return h.response({
+            status: "success",
+            message: confidenceScore > 0 ? "Ingredient successfully identified" : "Please use a clearer image.",
+            data,
+        }).code(201);
+    } catch (error) {
+        console.error("Error in postPredictHandler:", error);
+        return h.response({
+            status: "error",
+            message: "An internal server error occurred.",
+            details: error.message,
+        }).code(500);
+    }
 }
 
 async function getPredictHandler(request, h) {
-    const { id } = request.params;
+    try {
+        const { id } = request.params;
 
-    // Ambil data prediksi berdasarkan ID
-    const data = await getData(id);
+        const data = await getData(id);
 
-    if (!data) {
-        const response = h.response({
-            status: "fail",
-            message: "Prediction not found",
-        });
-        response.code(404);
-        return response;
+        if (!data) {
+            return h.response({
+                status: "fail",
+                message: "Prediction not found",
+            }).code(404);
+        }
+
+        return h.response({
+            status: "success",
+            data,
+        }).code(200);
+    } catch (error) {
+        console.error("Error in getPredictHandler:", error);
+        return h.response({
+            status: "error",
+            message: "An internal server error occurred.",
+        }).code(500);
     }
-
-    const response = h.response({
-        status: "success",
-        data,
-    });
-    response.code(200);
-    return response;
 }
 
 module.exports = { postPredictHandler, getPredictHandler };
+            
